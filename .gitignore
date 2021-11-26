@@ -10,10 +10,10 @@
 *.userosscache
 *.sln.docstates
 .vscode
-outcpp.avi
-output
-main.cpp
-test.cpp
+output.avi
+VideoProcessor
+Writer.cpp
+VideoProcessor.cpp
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
