@@ -1,37 +1,7 @@
-// ------------------------------ includes ------------------------------
-#include "opencv2/opencv.hpp"
-#include <pthread.h>
-#include <atomic>
-#include <unistd.h>
 
-using namespace cv;
-using namespace std;
+#include "StreamCapture.hpp"
 
-class StreamCapture
-{
-private:
-    Mat* currFrame; 
-    queue<Mat> frames;
-    pthread_mutex_t frameLock;
-    bool eof;
-    VideoCapture cap;
-    int frameWidth;
-    int frameHeight;
-    double fps;
-
-public:
-    StreamCapture(string video_path);
-    ~StreamCapture();
-    void start();
-    static void* readFrame(void* arg);
-    Mat getFrame();
-    bool empty();
-    bool endOfFile();
-    int getHeight();
-    int getWidth();
-    double getFps();
-};
-
+pthread_mutex_t frameLock;
 
 /**
  * @brief Construct a new Stream Capture:: Stream Capture object
@@ -53,6 +23,7 @@ StreamCapture::StreamCapture(string video_path)
     frameWidth = cap.get(CAP_PROP_FRAME_WIDTH);
     frameHeight = cap.get(CAP_PROP_FRAME_HEIGHT);
     eof = false;
+
 }
 
 
@@ -72,24 +43,31 @@ StreamCapture::~StreamCapture()
  */
 void* StreamCapture::readFrame(void* ptr)
 {
-    int k = 0;
     StreamCapture* sc = (StreamCapture*) ptr;
     while (true)
     {
         Mat frame;
         sc->cap >> frame;
+
+        // check if we get to the end of the file
         if (frame.empty())
         {
             sc->eof = true; 
             break;
         }
-        pthread_mutex_lock(&sc->frameLock);
+
+        // push the frame to the frames queue 
+        pthread_mutex_lock(&frameLock);
         sc->frames.push(frame);
-        pthread_mutex_unlock(&sc->frameLock);
-    
+        pthread_mutex_unlock(&frameLock);
+        
+
+
+        // Simulates the time between frames
         usleep(40 * 1000);
 
     }
+    return NULL;
     
 }
 
@@ -99,8 +77,8 @@ void* StreamCapture::readFrame(void* ptr)
 void StreamCapture::start()
 {
     pthread_t threadId;
-    pthread_attr_t* threadAttr;
-    int res = pthread_create(&threadId, NULL, &StreamCapture::readFrame, this);
+    int res = pthread_create(&threadId, NULL, &readFrame, this);
+
 
     //Checks if the thread was created successfully
     if (res)
@@ -114,15 +92,24 @@ void StreamCapture::start()
 /**
  * @brief Get the next frame from frames
  * 
- * @return Mat The frame if avilable
+ * @return Mat A frame if avilable, else an empty frame
  */
 Mat StreamCapture::getFrame()
 {
-    pthread_mutex_lock(&frameLock);
-    Mat f = frames.front();
-    frames.pop();
-    pthread_mutex_unlock(&frameLock);
+    Mat f;
+    if(frames.empty())
+    {
+        f = Mat();
+    }
+    else
+    {
+        pthread_mutex_lock(&frameLock);
+        f = frames.front();
+        frames.pop();
+        pthread_mutex_unlock(&frameLock);
+    }    
     return f;
+
 }
 
 /**
