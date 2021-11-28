@@ -21,8 +21,7 @@ private:
     VideoCapture cap;
 
     // queue of readed frames 
-    queue<Mat> frames;
-    Mat* currFrame; 
+    queue<Mat*>* frames;
     
     // the width of the stream frames
     int frameWidth;
@@ -68,7 +67,7 @@ public:
      * 
      * @return Mat The frame if avilable
      */
-    Mat getFrame();
+    void getFrame(Mat* frame);
 
     /**
      * @brief checks if the fraem queue is empty

@@ -1,6 +1,6 @@
-
 #include "StreamCapture.hpp"
 
+// a mutex for the critical part. (eg. read and write to the fram queue)
 pthread_mutex_t frameLock;
 
 /**
@@ -12,13 +12,15 @@ StreamCapture::StreamCapture(string video_path)
 {
     cap = VideoCapture(video_path);
 
-    //Checks if the file was opened successfully
+    // checks if the file was opened successfully
     if(!cap.isOpened()){
         cerr << "Error: Cannot open video stream or file" << endl;
         exit(1);
     }
 
-    // frames = new queue<Mat>;
+
+    // init the global var
+    frames = new queue<Mat*>;
     fps = cap.get(CAP_PROP_FPS);
     frameWidth = cap.get(CAP_PROP_FRAME_WIDTH);
     frameHeight = cap.get(CAP_PROP_FRAME_HEIGHT);
@@ -32,6 +34,8 @@ StreamCapture::StreamCapture(string video_path)
  */
 StreamCapture::~StreamCapture()
 {
+    delete frames;
+    cap.release();
 }
 
 
@@ -43,14 +47,19 @@ StreamCapture::~StreamCapture()
  */
 void* StreamCapture::readFrame(void* ptr)
 {
+    Mat *frame;
     StreamCapture* sc = (StreamCapture*) ptr;
+
+    // run until we get to the end of file
     while (true)
     {
-        Mat frame;
-        sc->cap >> frame;
 
-        // check if we get to the end of the file
-        if (frame.empty())
+        // read a frame from the stream
+        frame = new Mat();
+        sc->cap >> *frame;
+
+        // check if we get to the end of the stream
+        if (frame->empty())
         {
             sc->eof = true; 
             break;
@@ -58,7 +67,7 @@ void* StreamCapture::readFrame(void* ptr)
 
         // push the frame to the frames queue 
         pthread_mutex_lock(&frameLock);
-        sc->frames.push(frame);
+        sc->frames->push(frame);
         pthread_mutex_unlock(&frameLock);
         
 
@@ -94,22 +103,21 @@ void StreamCapture::start()
  * 
  * @return Mat A frame if avilable, else an empty frame
  */
-Mat StreamCapture::getFrame()
+void StreamCapture::getFrame(Mat* frame)
 {
-    Mat f;
-    if(frames.empty())
+    //checks if the fraem queue is empty
+    if(empty())
     {
-        f = Mat();
+        *frame = Mat();
     }
     else
     {
         pthread_mutex_lock(&frameLock);
-        f = frames.front();
-        frames.pop();
+        *frame = *frames->front();
+        delete frames->front();
+        frames->pop();
         pthread_mutex_unlock(&frameLock);
     }    
-    return f;
-
 }
 
 /**
@@ -119,7 +127,7 @@ Mat StreamCapture::getFrame()
  */
 bool StreamCapture::empty()
 {
-    return frames.empty();
+    return frames->empty();
 }
 
 /**
