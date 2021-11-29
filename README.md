@@ -1,7 +1,9 @@
 # VideoProcessor
 
 VideoProcessor is a c++ program to read a .mp4 file as if it was
-a live video stream and process the video in run time.
+a live video stream and process the video in run time and write it the an .avi file.
+The process is: for each frame its edges are calculated using sobel edge detector 
+and then the original frame is blended with its edges image.
 
 ## Build and Install dependencies
 The current recommended and tested environment is Ubuntu 18.04 LTS whit c++>=11
