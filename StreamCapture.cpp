@@ -8,23 +8,29 @@ pthread_mutex_t frameLock;
  * 
  * @param video_path A path to a video file
  */
-StreamCapture::StreamCapture(string video_path)
+StreamCapture::StreamCapture(string video_path, int ms)
 {
-    cap = VideoCapture(video_path);
+    _cap = VideoCapture(video_path);
 
     // checks if the file was opened successfully
-    if(!cap.isOpened()){
+    if(!_cap.isOpened()){
         cerr << "Error: Cannot open video stream or file" << endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
+    // checks if the mutex was init successfully
+    if(pthread_mutex_init(&frameLock, NULL)){
+        cerr << "Error: Cannot init mutex" << endl;
+        exit(EXIT_FAILURE);
+    }
 
     // init the global var
-    frames = new queue<Mat*>;
-    fps = cap.get(CAP_PROP_FPS);
-    frameWidth = cap.get(CAP_PROP_FRAME_WIDTH);
-    frameHeight = cap.get(CAP_PROP_FRAME_HEIGHT);
-    eof = false;
+    _frames = new queue<Mat*>;
+    _interval = ms;
+    _fps = _cap.get(CAP_PROP_FPS);
+    _frameWidth = _cap.get(CAP_PROP_FRAME_WIDTH);
+    _frameHeight = _cap.get(CAP_PROP_FRAME_HEIGHT);
+    _eof = false;
 
 }
 
@@ -34,8 +40,9 @@ StreamCapture::StreamCapture(string video_path)
  */
 StreamCapture::~StreamCapture()
 {
-    delete frames;
-    cap.release();
+    pthread_mutex_destroy(&frameLock);
+    delete _frames;
+    _cap.release();
 }
 
 
@@ -45,7 +52,7 @@ StreamCapture::~StreamCapture()
  * @param ptr pointer to a StreamCapture object
  * @return void* return NULL
  */
-void* StreamCapture::readFrame(void* ptr)
+void* StreamCapture::_readFrame(void* ptr)
 {
     Mat *frame;
     StreamCapture* sc = (StreamCapture*) ptr;
@@ -53,27 +60,32 @@ void* StreamCapture::readFrame(void* ptr)
     // run until we get to the end of file
     while (true)
     {
-
+        auto start = high_resolution_clock::now();
+        
         // read a frame from the stream
         frame = new Mat();
-        sc->cap >> *frame;
+        sc->_cap >> *frame;
 
         // check if we get to the end of the stream
         if (frame->empty())
         {
-            sc->eof = true; 
+            sc->_eof = true; 
             break;
+            
         }
 
         // push the frame to the frames queue 
         pthread_mutex_lock(&frameLock);
-        sc->frames->push(frame);
+        sc->_frames->push(frame);
         pthread_mutex_unlock(&frameLock);
-        
 
+        // calculate the sleeping time of the thread
+        auto end = high_resolution_clock::now();
+        duration<double> time_span = duration_cast<duration<double>>(start - end);
+        int sleepTimeMs = int(sc->_interval - time_span.count()*1000) ;
 
         // Simulates the time between frames
-        usleep(40 * 1000);
+        usleep(sleepTimeMs * 1000);
 
     }
     return NULL;
@@ -86,14 +98,14 @@ void* StreamCapture::readFrame(void* ptr)
 void StreamCapture::start()
 {
     pthread_t threadId;
-    int res = pthread_create(&threadId, NULL, &readFrame, this);
+    int res = pthread_create(&threadId, NULL, &_readFrame, this);
 
 
     //Checks if the thread was created successfully
     if (res)
     {
         cerr << "Error: pthred_create failed." <<endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     
 }
@@ -105,17 +117,18 @@ void StreamCapture::start()
  */
 void StreamCapture::getFrame(Mat* frame)
 {
-    //checks if the fraem queue is empty
+    // checks if the fraem queue is empty
     if(empty())
     {
         *frame = Mat();
     }
     else
     {
+        // pop the curr frame to frame
         pthread_mutex_lock(&frameLock);
-        *frame = *frames->front();
-        delete frames->front();
-        frames->pop();
+        *frame = *_frames->front();
+        delete _frames->front();
+        _frames->pop();
         pthread_mutex_unlock(&frameLock);
     }    
 }
@@ -127,39 +140,5 @@ void StreamCapture::getFrame(Mat* frame)
  */
 bool StreamCapture::empty()
 {
-    return frames->empty();
-}
-
-/**
- * @brief checks if the stream is ended
- * 
- * @return true if the stream is ended, else false
- */
-bool StreamCapture::endOfFile()
-{
-    return eof;
-}
-
-/**
- * @return int the height of the stream fream
- */
-int StreamCapture::getHeight()
-{
-    return frameHeight;
-}
-
-/**
- * @return int the width of the stream fream
- */
-int StreamCapture::getWidth()
-{
-    return frameWidth;
-}
-
-/**
- * @return double the fream par second rate of the stream
- */
-double StreamCapture::getFps()
-{
-    return fps;
+    return _frames->empty();
 }
