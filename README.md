@@ -12,7 +12,7 @@ The current recommended and tested environment is Ubuntu 18.04 LTS whit c++>=11
 ```
 git clone https://github.com/israelbenattar/AcquireAndProcessVideoStream.git
 cd AcquireAndProcessVideoStream
-./setup.sh
+bash setup.sh
 ```
 ## Usage
 to run the program go to AcquireAndProcessVideoStream folder and run the folwing commands:
