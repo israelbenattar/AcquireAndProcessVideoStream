@@ -34,7 +34,6 @@ StreamCapture::StreamCapture(string video_path, int ms)
 
 }
 
-
 /**
  * @brief Destroy the Stream Capture:: Stream Capture object
  */
@@ -44,7 +43,6 @@ StreamCapture::~StreamCapture()
     delete _frames;
     _cap.release();
 }
-
 
 /**
  * @brief Read the video stream until the end of the stream in const intarvel of 40ms
@@ -84,9 +82,8 @@ void* StreamCapture::_readFrame(void* ptr)
         duration<double> time_span = duration_cast<duration<double>>(start - end);
         int sleepTimeMs = int(sc->_interval - time_span.count()*1000) ;
 
-        // Simulates the time between frames
+        // simulates the time between frames
         usleep(sleepTimeMs * 1000);
-
     }
     return NULL;
     
@@ -101,7 +98,7 @@ void StreamCapture::start()
     int res = pthread_create(&threadId, NULL, &_readFrame, this);
 
 
-    //Checks if the thread was created successfully
+    // checks if the thread was created successfully
     if (res)
     {
         cerr << "Error: pthred_create failed." <<endl;
