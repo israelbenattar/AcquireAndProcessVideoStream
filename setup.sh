@@ -1,5 +1,8 @@
 #!bin/sh
 
+sudo apt update
+sudo apt install python3-opencv
+
 #Updating ubuntu
 sudo apt-get update
 sudo apt-get upgrade
@@ -7,41 +10,44 @@ sudo apt-get upgrade
 #instal dependencies
 sudo apt-get install build-essential cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
 sudo apt-get install python3.6-dev python3-numpy libtbb2 libtbb-dev
-sudo apt-get install libjasper-dev
-sudo apt install grap
-REQUIRED_PKG="libjasper-dev"
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grap "install ok installed")
-echo $PKG_OK
-if ["" = "$PKG_OK"]; then
-    sudo apt install software-properties-common
-    sudo apt update
-    sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
-    sudo apt update
-fi
-sudo apt-get install libjpeg-dev libpng-dev libtiff5-dev libjasper-dev libdc1394-22-dev libeigen3-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev sphinx-common libtbb-dev yasm libfaac-dev libopencore-amrnb-dev libopencore-amrwb-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libavutil-dev libavfilter-dev libavresample-dev
+sudo apt install build-essential cmake git pkg-config libgtk-3-dev \
+    libavcodec-dev libavformat-dev libswscale-dev libv4l-dev \
+    libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev \
+    gfortran openexr libatlas-base-dev python3-dev python3-numpy \
+    libtbb2 libtbb-dev libdc1394-22-dev
 
 #get opencv
+mkdir ~/opencv_build && cd ~/opencv_build
+git clone https://github.com/opencv/opencv.git
+git clone https://github.com/opencv/opencv_contrib.git
+
+#Once the download is complete, create a temporary build directory, and switch to it:
+cd ~/opencv_build/opencv
+mkdir build && cd build
+
+#Set up the OpenCV build with CMake:
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=/usr/local \
+    -D INSTALL_C_EXAMPLES=ON \
+    -D INSTALL_PYTHON_EXAMPLES=ON \
+    -D OPENCV_GENERATE_PKGCONFIG=ON \
+    -D OPENCV_EXTRA_MODULES_PATH=~/opencv_build/opencv_contrib/modules \
+    -D BUILD_EXAMPLES=ON ..
+
+
+#Start the compilation process:
+make -j8
+sudo make install
+
+pkg-config --modversion opencv4
 sudo -s <<EOF
-cd /opt 
-git clone https://github.com/Itseez/opencv.git
-git clone https://github.com/Itseez/opencv_contrib.git
-
-#build and install the opencv
-cd opencv
-mkdir release && cd release
-cmake -D BUILD_TIFF=ON -D WITH_CUDA=OFF -D ENABLE_AVX=OFF -D WITH_OPENGL=OFF -D WITH_OPENCL=OFF -D WITH_IPP=OFF -D WITH_TBB=ON -D BUILD_TBB=ON -D WITH_EIGEN=OFF -D WITH_V4L=OFF -D WITH_VTK=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules /opt/opencv/
-make -j4
-make install
-ldconfig
-EOF
-cd ~
-
-#check if opencv was install on the machine
-sudo apt install apt-file
-sudo apt update
-P=$(sudo apt-file search opencv.pc)
+mv /usr/local/include/opencv4/opencv2 /usr/local/include
+P=$(sudo find ~/ -name "libopencv_core.so.4.5")
 P=${P%/*}
-P=${P#*:}
-PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$P
-export PKG_CONFIG_PATH
-pkg-config --modversion opencv
+touch /etc/ld.so.conf.d/opencv.conf
+echo  $P>>/etc/ld.so.conf.d/opencv.conf
+sudo ldconfig -v
+EOF
+
+sudo apt-get update
+sudo apt-get upgrade
