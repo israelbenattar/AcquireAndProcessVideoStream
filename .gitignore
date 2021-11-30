@@ -3,6 +3,21 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Build file
+VideoProcessor
+
+# video output
+*.avi
+
 # User-specific files
 *.rsuser
 *.suo
@@ -10,7 +25,6 @@
 *.userosscache
 *.sln.docstates
 .vscode
-
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

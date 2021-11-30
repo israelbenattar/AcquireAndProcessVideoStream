@@ -1,7 +1,6 @@
 //  @section DESCRIPTION
 //  This program reads MP4 file and simulates video stream reading at const intervals of _interval ms
-//  Input  : path to the mp4 file, cons interval in ms
-
+//  Input : path to the mp4 file, cons interval in ms
 
 #ifndef _STREAMCAPTURE_HPP
 #define _STREAMCAPTURE_HPP
@@ -14,7 +13,6 @@
 using namespace cv;
 using namespace std;
 using namespace std::chrono;
-
 
 class StreamCapture
 {

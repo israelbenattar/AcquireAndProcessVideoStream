@@ -11,15 +11,14 @@
  */
 void frameProcess(Mat* frame)
 {   
-    // Convert to graycsale
+    // convert to graycsale
     Mat img_gray;
     cvtColor(*frame, img_gray, COLOR_BGR2GRAY);
 
-    // Blur the image for better edge detection
+    // blur the image for better edge detection
     Mat img_blur;
     GaussianBlur(img_gray, img_blur, Size(3,3), 0);
     
-
     // compute the edges of the frame
     Mat sobelxy;
     Sobel(img_blur, sobelxy, CV_64F, 1, 1, 5);
@@ -33,7 +32,6 @@ void frameProcess(Mat* frame)
 
     // blend the tow images
     addWeighted(sobelxy, alpha, *frame, beta, 0.0, *frame);
-    
 }
 
 
@@ -45,6 +43,7 @@ int main( int argc, char** argv )
                 ./VideoProcessor <path To Input> <path To Output> <inerval in ms>\n";
         exit(EXIT_FAILURE);
     }
+    
     // auto start = high_resolution_clock::now();
     Mat* frame;
     VideoWriter outputWriter;
@@ -55,7 +54,8 @@ int main( int argc, char** argv )
     outputWriter.open(argv[2], VideoWriter::fourcc('X','V','I','D'), 
                       1000/atoi(argv[3]), Size(sc.getWidth(),sc.getHeight()));
 
-    if (!outputWriter.isOpened()) {
+    if (!outputWriter.isOpened()) 
+    {
         cerr << "Error: outputWriter Could not open the output\n";
         exit(EXIT_FAILURE);
     }
@@ -63,19 +63,19 @@ int main( int argc, char** argv )
     frame = new Mat();
     while (true)
     {
-        //get a frame from the StreamCapture object
+        // get a frame from the StreamCapture object
         sc.getFrame(frame);
 
-        //if frame is empty and sc.endOfFile() is true than we finish to read the stream frames.
+        // if frame is empty and sc.endOfFile() is true than we finish to read the stream frames.
         if(sc.endOfFile() & frame->empty())
         {
             break;
         }
 
-        //if frame is empty and sc.endOfFile() is false than we wait to anoter frame.
+        // if frame is empty and sc.endOfFile() is false than we wait to anoter frame.
         if(frame->empty())
         {
-            //sleep for random time betwen 0ms to 60ms
+            // sleep for random time betwen 0ms to 60ms
             double r = ((double) rand() / (RAND_MAX));
             usleep(r * 60 * 1000); 
         }
@@ -84,12 +84,13 @@ int main( int argc, char** argv )
             // process the frame
             frameProcess(frame);
 
-            //write to the output file
+            // write to the output file
             outputWriter << *frame;
 
         }
     }
-    // release resurcas
+
+    // release resources
     outputWriter.release();
     delete frame;
     return 0;
